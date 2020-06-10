@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Capistrano
   class DelayedJob::Jungle < Capistrano::Plugin
     include DelayedJobCommon
@@ -8,7 +10,7 @@ module Capistrano
     end
 
     def define_tasks
-      eval_rakefile File.expand_path('../../tasks/jungle.rake', __FILE__)
+      eval_rakefile File.expand_path('../tasks/jungle.rake', __dir__)
     end
 
     def debian_install(role)

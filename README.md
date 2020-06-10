@@ -4,7 +4,7 @@
 
 Add this line to your application's Gemfile:
 
-    gem "capistrano3-delayed-job", github: "capistrano3-delayed-job", group: :development
+    gem "capistrano3-delayed-job", github: "crmaxx/capistrano3-delayed-job", group: :development
 
 
 And then execute:
@@ -58,7 +58,6 @@ Configurable options, shown here with defaults: Please note the configuration op
 
 ```ruby
     set :delayed_job_user, fetch(:user)
-    set :delayed_job_state, "#{shared_path}/tmp/pids/delayed_job.state"
     set :delayed_job_pid, "#{shared_path}/tmp/pids/delayed_job.pid"
     set :delayed_job_log, "#{shared_path}/log/delayed_job.log"
     set :delayed_job_role, :app

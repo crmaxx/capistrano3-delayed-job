@@ -1,21 +1,22 @@
 #!/bin/sh
 #
-# puma - this script starts and stops the puma daemon
+# delayed_job - this script starts and stops the delayed_job daemon
 #
 # chkconfig: - 85 15
 # description: Description \
 # goes here...
-# processname: puma
-# config: /etc/puma.conf
-# pidfile: /home/stanislaw/apps/micro-apps/puma/puma.pid
+# processname: delayed_job
+# config: /etc/delayed_job.conf
+# pidfile: /home/stanislaw/apps/micro-apps/delayed_job/delayed_job.pid
 # Author: Darío Javier Cravero <'dario@exordo.com'>
+# Author: Maxim Zhukov <'crmaxx@gmail.com'>
 #
 # Do NOT "set -e"
 # Original script https://github.com/puma/puma/blob/master/tools/jungle/puma
 # It was modified here by Stanislaw Pankevich <'s.pankevich@gmail.com'>
 # to run on CentOS 5.5 boxes.
 # Script works perfectly on CentOS 5: script uses its native daemon().
-# Puma is being stopped/restarted by sending signals, control app is not used.
+# delayed_job is being stopped/restarted by sending signals, control app is not used.
 # Source function library.
 . /etc/rc.d/init.d/functions
 
@@ -25,13 +26,13 @@
 [ "$NETWORKING" = "no" ] && exit 0
 # PATH should only include /usr/* if it runs after the mountnfs.sh script
 PATH=/usr/local/bin:/usr/local/sbin/:/sbin:/usr/sbin:/bin:/usr/bin
-DESC="Puma rack web server"
-NAME=puma
+DESC="delayed_job server"
+NAME=delayed_job
 DAEMON=$NAME
 SCRIPTNAME=/etc/init.d/$NAME
-CONFIG=<%=fetch(:puma_jungle_conf)%>
+CONFIG=<%=fetch(:delayed_job_jungle_conf)%>
 JUNGLE=`cat $CONFIG`
-RUNPUMA=<%=fetch(:puma_run_path)%>
+RUN_DELAYED_JOB=<%=fetch(:delayed_job_run_path)%>
 # Skipping the following non-CentOS string
 # Load the VERBOSE setting and other rcS variables
 # . /lib/init/vars.sh
@@ -52,20 +53,20 @@ do_start() {
 		user=`echo $i | cut -d , -f 2`
 		config_file=`echo $i | cut -d , -f 3`
 		if [ "$config_file" = "" ]; then
-			config_file="$dir/config/puma.rb"
+			config_file="$dir/config/delayed_job.rb"
 		fi
 		log_file=`echo $i | cut -d , -f 4`
 		if [ "$log_file" = "" ]; then
-			log_file="$dir/log/puma.log"
+			log_file="$dir/log/delayed_job.log"
 		fi
 		do_start_one $dir $user $config_file $log_file
 	done
 }
 do_start_one() {
-	PIDFILE=$1/tmp/pids/puma.pid
+	PIDFILE=$1/tmp/pids/delayed_job.pid
 	if [ -e $PIDFILE ]; then
 		PID=`cat $PIDFILE`
-	# If the puma isn't running, run it, otherwise restart it.
+	# If the delayed_job isn't running, run it, otherwise restart it.
 	if [ "`ps -A -o pid= | grep -c $PID`" -eq 0 ]; then
 		do_start_one_do $1 $2
 	else
@@ -76,8 +77,8 @@ else
 fi
 }
 do_start_one_do() {
-	log_daemon_msg "--> Woke up puma $1"
-	daemon --user $2 $RUNPUMA $1
+	log_daemon_msg "--> Woke up delayed_job $1"
+	daemon --user $2 $RUN_DELAYED_JOB $1
 }
 #
 # Function that stops the jungle
@@ -94,22 +95,22 @@ do_stop() {
 #
 do_stop_one() {
 	log_daemon_msg "--> Stopping $1"
-	PIDFILE=$1/tmp/pids/puma.pid
-	STATEFILE=$1/tmp/pids/puma.state
+	PIDFILE=$1/tmp/pids/delayed_job.pid
+	STATEFILE=$1/tmp/pids/delayed_job.state
 	echo $PIDFILE
 	if [ -e $PIDFILE ]; then
 		PID=`cat $PIDFILE`
 		echo "Pid:"
 		echo $PID
 		if [ "`ps -A -o pid= | grep -c $PID`" -eq 0 ]; then
-			log_daemon_msg "---> Puma $1 isn't running."
+			log_daemon_msg "---> delayed_job $1 isn't running."
 		else
 			log_daemon_msg "---> About to kill PID `cat $PIDFILE`"
-			pumactl --state $STATEFILE stop			
+			delayed_job stop
 			rm -f $PIDFILE $STATEFILE
 		fi
 	else
-		log_daemon_msg "---> No puma here..."
+		log_daemon_msg "---> No delayed_job here..."
 	fi
 	return 0
 }
@@ -126,23 +127,23 @@ do_restart() {
 # Function that sends a SIGUSR2 to the daemon/service
 #
 do_restart_one() {
-	PIDFILE=$1/tmp/pids/puma.pid
+	PIDFILE=$1/tmp/pids/delayed_job.pid
 	i=`grep $1 $CONFIG`
 	dir=`echo $i | cut -d , -f 1`
 	if [ -e $PIDFILE ]; then
-		log_daemon_msg "--> About to restart puma $1"
-		pumactl --state $dir/tmp/pids/puma.state restart
+		log_daemon_msg "--> About to restart delayed_job $1"
+		delayed_job restart
 
 	else
-		log_daemon_msg "--> Your puma was never playing... Let's get it out there first"
+		log_daemon_msg "--> Your delayed_job was never playing... Let's get it out there first"
 		user=`echo $i | cut -d , -f 2`
 		config_file=`echo $i | cut -d , -f 3`
 		if [ "$config_file" = "" ]; then
-			config_file="$dir/config/puma.rb"
+			config_file="$dir/config/delayed_job.rb"
 		fi
 		log_file=`echo $i | cut -d , -f 4`
 		if [ "$log_file" = "" ]; then
-			log_file="$dir/log/puma.log"
+			log_file="$dir/log/delayed_job.log"
 		fi
 		do_start_one $dir $user $config_file $log_file
 	fi
@@ -161,12 +162,12 @@ do_status() {
 # Function that sends a SIGUSR2 to the daemon/service
 #
 do_status_one() {
-	PIDFILE=$1/tmp/pids/puma.pid
+	PIDFILE=$1/tmp/pids/delayed_job.pid
 	i=`grep $1 $CONFIG`
 	dir=`echo $i | cut -d , -f 1`
 	if [ -e $PIDFILE ]; then
-		log_daemon_msg "--> About to status puma $1"
-		pumactl --state $dir/tmp/pids/puma.state stats
+		log_daemon_msg "--> About to status delayed_job $1"
+		delayed_job status
 
 	else
 		log_daemon_msg "--> $1 isn't there :(..."
@@ -209,7 +210,7 @@ do_add() {
 		fi
 		# Add it to the jungle
 		echo $str >> $CONFIG
-		log_daemon_msg "Added a Puma to the jungle: $str. You still have to start it though."
+		log_daemon_msg "Added a delayed_job to the jungle: $str. You still have to start it though."
 	}
 	do_remove() {
 		if [ "`grep -c "^$1" $CONFIG`" -eq 0 ]; then
@@ -219,7 +220,7 @@ do_add() {
 		do_stop_one $1
 		# Remove it from the config.
 		sed -i "\\:^$1:d" $CONFIG
-		log_daemon_msg "Removed a Puma from the jungle: $1."
+		log_daemon_msg "Removed a delayed_job from the jungle: $1."
 	fi
 }
 case "$1" in
@@ -233,11 +234,11 @@ else
 	user=`echo $i | cut -d , -f 2`
 	config_file=`echo $i | cut -d , -f 3`
 	if [ "$config_file" = "" ]; then
-		config_file="$dir/config/puma.rb"
+		config_file="$dir/config/delayed_job.rb"
 	fi
 	log_file=`echo $i | cut -d , -f 4`
 	if [ "$log_file" = "" ]; then
-		log_file="$dir/log/puma.log"
+		log_file="$dir/log/delayed_job.log"
 	fi
 	do_start_one $dir $user $config_file $log_file
 fi
@@ -292,7 +293,7 @@ esac
 add)
 if [ "$#" -lt 3 ]; then
 	echo "Please, specifiy the app's directory and the user that will run it at least."
-	echo " Usage: $SCRIPTNAME add /path/to/app user /path/to/app/config/puma.rb /path/to/app/config/log/puma.log"
+	echo " Usage: $SCRIPTNAME add /path/to/app user /path/to/app/config/delayed_job.rb /path/to/app/config/log/delayed_job.log"
 	echo " config and log are optionals."
 	exit 1
 else
@@ -318,10 +319,10 @@ esac
 *)
 echo "Usage:" >&2
 echo " Run the jungle: $SCRIPTNAME {start|stop|status|restart}" >&2
-echo " Add a Puma: $SCRIPTNAME add /path/to/app user /path/to/app/config/puma.rb /path/to/app/config/log/puma.log"
+echo " Add a delayed_job: $SCRIPTNAME add /path/to/app user /path/to/app/config/delayed_job.rb /path/to/app/config/log/delayed_job.log"
 echo " config and log are optionals."
-echo " Remove a Puma: $SCRIPTNAME remove /path/to/app"
-echo " On a Puma: $SCRIPTNAME {start|stop|status|restart} PUMA-NAME" >&2
+echo " Remove a delayed_job: $SCRIPTNAME remove /path/to/app"
+echo " On a delayed_job: $SCRIPTNAME {start|stop|status|restart} DELAYED-JOB-NAME" >&2
 exit 3
 ;;
 esac
