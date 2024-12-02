@@ -14,7 +14,7 @@ Gem::Specification.new do |spec|
   spec.homepage = 'https://github.com/crmaxx/capistrano3-delayed-job'
   spec.license = 'MIT'
 
-  spec.required_ruby_version = '>= 2.6.5'
+  spec.required_ruby_version = '>= 2.6.6'
 
   spec.files = `git ls-files`.split($INPUT_RECORD_SEPARATOR)
   spec.require_paths = ['lib']

@@ -1,17 +1,17 @@
 # frozen_string_literal: true
 
 require 'capistrano/bundler'
-require "capistrano/plugin"
+require 'capistrano/plugin'
 
 module Capistrano
   module DelayedJobCommon
-    def delayed_job_switch_user(role)
+    def delayed_job_switch_user(role, &block)
       user = delayed_job_user(role)
       if user == role.user
-        yield
+        block.call
       else
         backend.as user do
-          yield
+          block.call
         end
       end
     end
@@ -24,36 +24,36 @@ module Capistrano
           role.user
     end
 
-    def template_delayed_job(from, to, role)
+    def compiled_template_delayed_job(from, role)
       @role = role
       file = [
-        "lib/capistrano/templates/#{from}-#{role.hostname}-#{fetch(:stage)}.rb",
-        "lib/capistrano/templates/#{from}-#{role.hostname}.rb",
-        "lib/capistrano/templates/#{from}-#{fetch(:stage)}.rb",
-        "lib/capistrano/templates/#{from}.rb.erb",
-        "lib/capistrano/templates/#{from}.rb",
-        "lib/capistrano/templates/#{from}.erb",
-        "config/deploy/templates/#{from}.rb.erb",
-        "config/deploy/templates/#{from}.rb",
-        "config/deploy/templates/#{from}.erb",
-        File.expand_path("../templates/#{from}.erb", __FILE__),
-        File.expand_path("../templates/#{from}.rb.erb", __FILE__)
+          "lib/capistrano/templates/#{from}-#{role.hostname}-#{fetch(:stage)}.rb",
+          "lib/capistrano/templates/#{from}-#{role.hostname}.rb",
+          "lib/capistrano/templates/#{from}-#{fetch(:stage)}.rb",
+          "lib/capistrano/templates/#{from}.rb.erb",
+          "lib/capistrano/templates/#{from}.rb",
+          "lib/capistrano/templates/#{from}.erb",
+          "config/deploy/templates/#{from}.rb.erb",
+          "config/deploy/templates/#{from}.rb",
+          "config/deploy/templates/#{from}.erb",
+          File.expand_path("../templates/#{from}.erb", __FILE__),
+          File.expand_path("../templates/#{from}.rb.erb", __FILE__)
       ].detect { |path| File.file?(path) }
       erb = File.read(file)
-      backend.upload! StringIO.new(ERB.new(erb, trim_mode: '-').result(binding)), to
+      if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.6')
+        StringIO.new(ERB.new(erb, nil, '-').result(binding))
+      else
+        StringIO.new(ERB.new(erb, trim_mode: '-').result(binding))
+      end
     end
 
-    def execute_delayed_job(command)
-      backend.execute "cd /home/#{fetch(:user)}/#{fetch(:application)}/current && (export RBENV_ROOT=#{fetch(:rbenv_path)} RBENV_VERSION=#{fetch(:rbenv_ruby)} RACK_ENV=#{fetch(:rails_env)}; #{fetch(:rbenv_prefix)} #{fetch(:delayed_job_restart_command)} #{command})"
+    def template_delayed_job(from, to, role)
+      backend.upload! compiled_template_delayed_job(from, role), to
     end
   end
 
-  class DelayedJob < Capistrano::Plugin
-    include DelayedJobCommon
-
-    def define_tasks
-      eval_rakefile File.expand_path('tasks/delayed_job.rake', __dir__)
-    end
+  class Puma < Capistrano::Plugin
+    include PumaCommon
 
     def set_defaults
       set_if_empty :delayed_job_role, :app
@@ -65,31 +65,14 @@ module Capistrano
       set_if_empty :delayed_job_restart_command, 'bundle exec bin/delayed_job'
 
       # Chruby, Rbenv and RVM integration
-      append :chruby_map_bins, 'delayed_job'
-      append :rbenv_map_bins, 'delayed_job'
-      append :rvm_map_bins, 'delayed_job'
+      append :chruby_map_bins, 'delayed_job' if fetch(:chruby_map_bins)
+      append :rbenv_map_bins, 'delayed_job' if fetch(:rbenv_map_bins)
+      append :rvm_map_bins, 'delayed_job' if fetch(:rvm_map_bins)
 
       # Bundler integration
       append :bundle_bins, 'delayed_job'
     end
-
-    def register_hooks
-      after 'deploy:check', 'delayed_job:check'
-      after 'deploy:finished', 'delayed_job:restart'
-    end
-
-    def delayed_job_workers
-      fetch(:delayed_job_workers, 1)
-    end
-
-    def upload_delayed_job_config_rb(role)
-      template_delayed_job 'delayed_job_config', fetch(:delayed_job_conf), role
-    end
-
-    def delayed_job_for(command)
-      execute_delayed_job(command)
-    end
   end
 end
 
-require 'capistrano/delayed-job/jungle'
+require 'capistrano/delayed_job/systemd'

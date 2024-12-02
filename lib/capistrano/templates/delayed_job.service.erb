@@ -1,0 +1,39 @@
+# This file tells systemd how to run DelayedJob as a 24/7 long-running daemon.
+#
+# Customize this file based on your bundler location, app directory, etc.
+# Customize and copy this into /usr/lib/systemd/system (CentOS) or /lib/systemd/system (Ubuntu).
+# Then run:
+#   - systemctl <%="--user " unless fetch(:delayed_job_systemctl_user) == :system %>enable <%= fetch(:delayed_job_service_unit_name) %>
+#   - systemctl <%="--user " unless fetch(:delayed_job_systemctl_user) == :system %>{start,stop,restart} <%= fetch(:delayed_job_service_unit_name) %>
+#
+#
+# Use `journalctl -u <%= fetch(:delayed_job_service_unit_name) %> -rn 100` to view the last 100 lines of log output.
+#
+[Unit]
+Description=DelayedJob for <%= "#{fetch(:application)} (#{fetch(:stage)})" %>
+<%= "Requires=#{fetch(:delayed_job_service_unit_name)}.socket" if fetch(:delayed_job_enable_socket_service) %>
+After=syslog.target network.target
+
+[Service]
+Type=simple
+<%="User=#{delayed_job_user(@role)}" if fetch(:delayed_job_systemctl_user) == :system %>
+WorkingDirectory=<%= current_path %>
+ExecStart=<%= expanded_bundle_command %> exec delayed_job %>
+ExecReload=/bin/kill -USR1 $MAINPID
+<%- Array(fetch(:delayed_job_service_unit_env_files)).each do |file| %>
+<%="EnvironmentFile=#{file}" -%>
+<% end -%>
+<% Array(fetch(:delayed_job_service_unit_env_vars)).each do |environment_variable| %>
+<%="Environment=\"#{environment_variable}\"" -%>
+<% end -%>
+
+# if we crash, restart
+RestartSec=1
+Restart=on-failure
+
+<%="StandardOutput=append:#{fetch(:delayed_job_log)}" if fetch(:delayed_job_log) %>
+<%="StandardError=append:#{fetch(:delayed_job_log)}" if fetch(:delayed_job_log) %>
+
+SyslogIdentifier=<%= fetch(:delayed_job_service_unit_name) %>
+[Install]
+WantedBy=<%=(fetch(:delayed_job_systemctl_user) == :system) ? "multi-user.target" : "default.target"%>

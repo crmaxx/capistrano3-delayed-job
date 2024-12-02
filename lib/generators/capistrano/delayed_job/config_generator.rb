@@ -5,7 +5,7 @@ module Capistrano
     module Generators
       class ConfigGenerator < Rails::Generators::Base
         desc "Create local delayed_job configuration files for customization"
-        source_root File.expand_path('templates', __dir__)
+        source_root File.expand_path('../templates', __FILE__)
         argument :templates_path, type: :string,
                                   default: "config/deploy/templates",
                                   banner: "path to templates"

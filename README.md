@@ -57,13 +57,9 @@ For Jungle tasks (beta), these options exist:
 Configurable options, shown here with defaults: Please note the configuration options below are not required unless you are trying to override a default setting, for instance if you are deploying on a host on which you do not have sudo or root privileges and you need to restrict the path. These settings go in the deploy.rb file.
 
 ```ruby
-    set :delayed_job_user, fetch(:user)
     set :delayed_job_pid, "#{shared_path}/tmp/pids/delayed_job.pid"
     set :delayed_job_log, "#{shared_path}/log/delayed_job.log"
-    set :delayed_job_role, :app
     set :delayed_job_env, fetch(:rack_env, fetch(:rails_env, 'production'))
-    set :delayed_job_workers, 1
-    set :delayed_job_restart_command, 'bundle exec bin/delayed_job'
 ```
 
 ## Contributing
