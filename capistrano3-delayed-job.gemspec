@@ -2,7 +2,7 @@
 
 lib = File.expand_path('lib', __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'capistrano/delayed-job/version'
+require 'capistrano/delayed_job/version'
 
 Gem::Specification.new do |spec|
   spec.name = 'capistrano3-delayed-job'
