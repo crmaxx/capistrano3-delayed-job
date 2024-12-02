@@ -52,8 +52,8 @@ module Capistrano
     end
   end
 
-  class Puma < Capistrano::Plugin
-    include PumaCommon
+  class DelayedJob < Capistrano::Plugin
+    include DelayedJobCommon
 
     def set_defaults
       set_if_empty :delayed_job_role, :app
